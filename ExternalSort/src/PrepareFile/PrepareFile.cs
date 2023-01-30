@@ -19,14 +19,14 @@ public sealed class PrepareFile : IPrepareFile
 
     public async Task Prepare(CancellationToken cancellationToken)
     {
-        var pathToRead = $"{_settings.Path}/{_settings.Name}";
+        var pathToRead = $"{_settings.Path}/{_settings.NameSource}";
         if (!File.Exists(pathToRead))
         {
             _logger.LogError($"file source not exists, path {pathToRead}");
         }
 
         var randomPostfix = new Random().NextInt64();
-        var pathToWrite = $"{_settings.Path}/{_settings.Name}{randomPostfix}";
+        var pathToWrite = $"{_settings.Path}/{_settings.NameSource}{randomPostfix}";
         if (File.Exists(pathToWrite))
         {
             _logger.LogError($"file destination exists, path {pathToWrite}");

@@ -6,6 +6,7 @@ namespace ConsoleApp1.Sort;
 
 public sealed class SortFile : ISortFile
 {
+    private const string FileAddition = "temp";
     private readonly Settings _settings;
     private readonly ILogger<SortFile> _logger; 
     
@@ -19,14 +20,15 @@ public sealed class SortFile : ISortFile
 
     public async Task Sort()
     {
-        var pathToRead = $"{_settings.Path}/{_settings.Name}";
+        var pathToRead = $"{_settings.Path}/{_settings.NameSource}";
         if (!File.Exists(pathToRead))
         {
             _logger.LogError("file source not exists, path {PathToRead}", pathToRead);
         }
         await using var fStreamRead = File.OpenRead(pathToRead);
         using var streamReader = new StreamReader(fStreamRead, Encoding.UTF8);
-        await using var streamWriter = new StreamWriter(pathToRead);
+        var pathToWrite = $"{_settings.Path}/{_settings.NameDestination}";
+        await using var streamWriter = new StreamWriter(pathToWrite);
 
         while (!streamReader.EndOfStream)
         {
@@ -45,5 +47,7 @@ public sealed class SortFile : ISortFile
             Array.Sort(block1);
             await streamWriter.WriteAsync(string.Join(string.Empty, block1));
         }
+        
+        
     }
 }
