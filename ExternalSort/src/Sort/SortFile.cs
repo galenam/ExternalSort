@@ -6,48 +6,70 @@ namespace ConsoleApp1.Sort;
 
 public sealed class SortFile : ISortFile
 {
-    private const string FileAddition = "temp";
+    private const short BlockCount = 100;
     private readonly Settings _settings;
-    private readonly ILogger<SortFile> _logger; 
-    
+    private readonly ILogger<SortFile> _logger;
+    private readonly string _pathToRead;
+
     public SortFile(
         IOptions<Settings> options,
         ILogger<SortFile> logger)
     {
         _settings = options.Value;
         _logger = logger;
+        _pathToRead = $"{_settings.Path}/{_settings.NameSource}";
     }
 
-    public async Task Sort()
+    public async Task Sort(CancellationToken cancellationToken)
     {
-        var pathToRead = $"{_settings.Path}/{_settings.NameSource}";
-        if (!File.Exists(pathToRead))
+        if (!File.Exists(_pathToRead))
         {
-            _logger.LogError("file source not exists, path {PathToRead}", pathToRead);
+            _logger.LogError("file source not exists, path {PathToRead}", _pathToRead);
         }
-        await using var fStreamRead = File.OpenRead(pathToRead);
-        using var streamReader = new StreamReader(fStreamRead, Encoding.UTF8);
-        var pathToWrite = $"{_settings.Path}/{_settings.NameDestination}";
-        await using var streamWriter = new StreamWriter(pathToWrite);
-
-        while (!streamReader.EndOfStream)
+        
+        var streamWriters = new StreamWriter[BlockCount];
+        for (var i = 0; i < BlockCount; i++)
         {
-            var block1 = new string[_settings.CountLinesInBlock];
-            for (var i = 0; i < block1.Length; i++)
+            var pathToWrite = $"{_settings.Path}/{i:D2}.txt";
+            Console.WriteLine(pathToWrite);
+            var streamWriter = new StreamWriter(pathToWrite, false);
+            streamWriters[i] = streamWriter;
+        }
+        
+        using var streamReader = new StreamReader(_pathToRead);
+        while (await streamReader.ReadLineAsync() is { } line)
+        {
+            var indexString = line[..2];
+            if (int.TryParse(indexString, out var index))
             {
-                var line = await streamReader.ReadLineAsync();
-                if (string.IsNullOrEmpty(line))
-                {
-                    break;
-                }
-
-                block1[i] = line;
+                await streamWriters[index].WriteLineAsync(line);
             }
-
-            Array.Sort(block1);
-            await streamWriter.WriteAsync(string.Join(string.Empty, block1));
         }
-        
-        
+
+        foreach (var streamWriter in streamWriters)
+        {
+            await streamWriter.FlushAsync();
+        }
+
+        var pathToDestination = $"{_settings.Path}/{_settings.NameDestination}";
+        await using var streamWriterDestination = new StreamWriter(pathToDestination, false);
+        for (var i = 0; i < BlockCount; i++)
+        {
+            var pathToRead = $"{_settings.Path}/{i:D2}.txt";
+            var lines = await File.ReadAllLinesAsync(pathToRead, cancellationToken);
+            if (lines.Length == 0)
+            {
+                continue;
+            }
+            Array.Sort(lines);
+            var sBuilder = new StringBuilder(string.Join(Environment.NewLine, lines));
+            await streamWriterDestination.WriteAsync(sBuilder, cancellationToken);
+        }
+
+        foreach (var streamWriter in streamWriters)
+        {
+            streamWriter.Close();
+            await streamWriter.DisposeAsync();
+        }
     }
 }

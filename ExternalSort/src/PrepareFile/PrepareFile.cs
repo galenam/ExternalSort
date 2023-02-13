@@ -26,17 +26,16 @@ public sealed class PrepareFile : IPrepareFile
         }
 
         var randomPostfix = new Random().NextInt64();
-        var pathToWrite = $"{_settings.Path}/{_settings.NameSource}{randomPostfix}";
+        var pathToWrite = $"{_settings.Path}/{randomPostfix}{_settings.NameSource}";
         if (File.Exists(pathToWrite))
         {
             _logger.LogError($"file destination exists, path {pathToWrite}");
         }
 
-        await using var fStreamRead = File.OpenRead(pathToRead);
-        await using var fStreamWrite = File.OpenWrite(pathToWrite);
-        var streamReaderRead = new StreamReader(fStreamRead, Encoding.UTF8);
+        await using var streamWriter = new StreamWriter(pathToWrite, false);
+        var streamReader = new StreamReader(pathToRead, Encoding.UTF8);
 
-        while (await streamReaderRead.ReadLineAsync() is { } line)
+        while (await streamReader.ReadLineAsync() is { } line)
         {
             if (string.IsNullOrEmpty(line))
             {
@@ -44,7 +43,7 @@ public sealed class PrepareFile : IPrepareFile
             }
 
             var lineToWrite = line.Length < 10 ? line.PadLeft(10, '0') : line;
-            await fStreamWrite.WriteAsync(Encoding.ASCII.GetBytes(lineToWrite), cancellationToken);
+            await streamWriter.WriteLineAsync(lineToWrite);
         }
         File.Delete(pathToRead);
         File.Move(pathToWrite, pathToRead);

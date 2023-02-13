@@ -1,5 +1,6 @@
 ﻿using ConsoleApp1;
 using ConsoleApp1.PrepareFile;
+using ConsoleApp1.Sort;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,6 +19,7 @@ using IHost host = Host.CreateDefaultBuilder(args)
     {
         var configurationRoot = context.Configuration;
         services.AddSingleton<IPrepareFile, PrepareFile>();
+        services.AddSingleton<ISortFile, SortFile>();
         
         services.AddOptions<Settings>()
             .Bind(configurationRoot.GetSection(nameof(Settings)));
@@ -33,4 +35,6 @@ var provider = serviceScope.ServiceProvider;
 var prepareFile = provider.GetRequiredService<IPrepareFile>();
 var cancellationToken = new CancellationToken();
 await prepareFile.Prepare(cancellationToken);
+var sortFiles =  provider.GetRequiredService<ISortFile>();
+await sortFiles.Sort(cancellationToken);
 

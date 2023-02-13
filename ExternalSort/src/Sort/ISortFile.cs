@@ -2,5 +2,5 @@ namespace ConsoleApp1.Sort;
 
 public interface ISortFile
 {
-    Task Sort();
+    Task Sort(CancellationToken cancellationToken);
 }
