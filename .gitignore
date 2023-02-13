@@ -2,4 +2,4 @@
 */obj/*
 */bin/*
 */appsettings.Development.json
-data — копия.txt
+.DS_Store
